@@ -1,0 +1,220 @@
+# Title: 11_NeighboringPair_TSStoTSS_Coordinates
+# Purpose: To retrieve the genomic coordinates that are found between the TSS of mRNA and its neighboring transcript.
+# Packages: "GenomicRanges"
+require(GenomicRanges)
+# Input files: "mRNAde_lncRNAde_[distance]", "mRNAde_mRNAde_[distance]", "mRNAdelncRNAde_TranscriptionalOrientation_[distance]", "mRNA_IL1B_differentiallyexpressed", "lncRNA_IL1B_differentiallyexpressed"
+# Output files: "mRNAdelncRNAde_TSScoordinates_[distance]", "mRNAdemRNAde_TSScoordinates_[distance]", 
+# "divergent_mRNAdelncRNAde_TSScoordinates_[distance]", "nondivergent_mRNAdelncRNAde_TSScoordinates_[distance]"
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+
+# Loading the mRNA-lncRNA neighboring pair csv files 
+# Start by setting up a list of genomic distances for which to open up the files
+distance<-as.integer(c(seq(5000, 100000, 5000),125000,150000,175000,200000,
+                       225000, 250000,275000, 300000, 400000, 500000))
+
+# Opening up the mRNA-lncRNA neighboring pairs for the selected genomic distances and combining all these dataframes in one list
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_",distance[i],".csv", sep=""), stringsAsFactors=FALSE)[,c(1:2)]))
+mRNAde_mRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_mRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_mRNAde/mRNAde_mRNAde_",distance[i],".csv", sep=""), stringsAsFactors=FALSE)[,c(1:2)]))
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# Now opening up the files with the coordinates of lncRNAs and mRNAs
+
+lncRNA_coordinates <- read.csv("Path/lncRNA_IL1B_differentiallyexpressed.csv")
+lncRNA_coordinates<-lncRNA_coordinates[complete.cases(lncRNA_coordinates),]
+lncRNA_coordinates<-lncRNA_coordinates[!duplicated(lncRNA_coordinates$lncRNA),]
+
+mRNA_coordinates <- read.csv("Path/mRNA_IL1B_differentiallyexpressed.csv")
+mRNA_coordinates<-mRNA_coordinates[complete.cases(mRNA_coordinates),]
+mRNA_coordinates<-mRNA_coordinates[!duplicated(mRNA_coordinates$mRNA),]
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# Filling out the coordinates for lncRNAs from mRNAde_lncRNAde pairs
+
+lncRNA_chr<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),2])))
+lncRNA_start<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),3])))
+lncRNA_end<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),4])))
+lncRNA_strand<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),5])))
+
+# Combining coordinate information into one dataframe
+lncRNA_frommRNAdelncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol, lncRNA_chr[[i]], lncRNA_start[[i]], lncRNA_end[[i]], lncRNA_strand[[i]]), stringsAsFactors=FALSE))
+
+# Next perform for mRNAs from mRNAde_lncRNAde pairs
+mRNA_chr<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),3])))
+mRNA_start<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),4])))
+mRNA_end<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),5])))
+mRNA_strand<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),6])))
+
+mRNA_frommRNAdelncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol, mRNA_chr[[i]], mRNA_start[[i]], mRNA_end[[i]], mRNA_strand[[i]]), stringsAsFactors=FALSE))
+
+
+# Next perform for mRNAs from mRNAde_mRNAde pairs
+mRNA_chr<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),3])))
+mRNA_start<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),4])))
+mRNA_end<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),5])))
+mRNA_strand<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),6])))
+
+mRNA_frommRNAdemRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_mRNAde_list[[i]]$mRNA_Symbol, mRNA_chr[[i]], mRNA_start[[i]], mRNA_end[[i]], mRNA_strand[[i]]), stringsAsFactors=FALSE))
+
+# Next perform for mRNA2s from mRNAde_mRNAde pairs
+mRNA2_chr<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA2_Symbol[j])==as.character(mRNA_coordinates$mRNA),3])))
+mRNA2_start<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA2_Symbol[j])==as.character(mRNA_coordinates$mRNA),4])))
+mRNA2_end<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA2_Symbol[j])==as.character(mRNA_coordinates$mRNA),5])))
+mRNA2_strand<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_mRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_list[[i]]$mRNA2_Symbol[j])==as.character(mRNA_coordinates$mRNA),6])))
+
+mRNA2_frommRNAdemRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_mRNAde_list[[i]]$mRNA2_Symbol, mRNA2_chr[[i]], mRNA2_start[[i]], mRNA2_end[[i]], mRNA2_strand[[i]]), stringsAsFactors=FALSE))
+
+
+#-----------------------------------------------------------------------------------------------------------
+# The function BetweenCoordinates creates a new GRanges file for each lncRNA-mRNA pair
+# Which incompasses the region between the TSS of the transcript pair
+
+BetweenCoordinates<-function(lncRNA,mRNA){
+  
+  colnames(lncRNA)<-c("name", "chr", "start", "end", "strand")
+  colnames(mRNA)<-c("name", "chr", "start", "end", "strand")
+  
+  merge<-makeGRangesFromDataFrame(lncRNA)
+  lncRNA<-makeGRangesFromDataFrame(lncRNA)
+  lncRNA<-promoters(lncRNA,1,1)
+  mRNA<-makeGRangesFromDataFrame(mRNA)
+  mRNA<-promoters(mRNA,1,1)
+
+    for (i in 1:length(lncRNA)){
+    if (start(lncRNA)[i]<start(mRNA)[i]){
+      start(merge)[i]<-start(lncRNA)[i]
+      end(merge)[i]<-end(mRNA)[i]
+    } else {
+      start(merge)[i]<-start(mRNA)[i]
+      end(merge)[i]<-end(lncRNA)[i]
+    }
+  }
+  return(merge)
+}
+
+
+#-----------------------------------------------------------------------------------------------------------
+# Applying the "BetweenCoordinates" function to the mRNAde-lncRNAde list and mRNAde-mRNAde list
+
+mRNAde_lncRNAde_list<-mapply(BetweenCoordinates, lncRNA_frommRNAdelncRNAde_list, mRNA_frommRNAdelncRNAde_list)
+mRNAde_mRNAde_list<-mapply(BetweenCoordinates, mRNA2_frommRNAdemRNAde_list, mRNA_frommRNAdemRNAde_list)
+
+#-----------------------------------------------------------------------------------------------------------
+# Next create a list of random genomic coordinates which will be on the same chromosomes as the original
+# transcript pairs and be of same distance away from each other
+set.seed(1)
+
+# Start by recording the chromosome information of transcript pairs
+chr_mRNAde_lncRNAde_list<- sapply(1:30, function(i) as.character(seqnames(mRNAde_lncRNAde_list[[i]])))
+chr_mRNAde_mRNAde_list<-sapply(1:30, function(i) as.character(seqnames(mRNAde_mRNAde_list[[i]])))
+
+# Record the distance between original transcript pairs to keep that consistent
+distance_mRNAde_lncRNAde_list<-sapply(1:30, function(i) width(mRNAde_lncRNAde_list[[i]]))
+distance_mRNAde_mRNAde_list<-sapply(1:30, function(i) width(mRNAde_mRNAde_list[[i]]))
+
+# Pick a random number to be the start chromosome. The values go up to 46 million because that's the number
+# of nucleotides in the shortest chromosome
+start_mRNAde_lncRNAde_list<-sapply(1:30, function(i) sample(1:46000000, length(mRNAde_lncRNAde_list[[i]]), replace=TRUE))
+start_mRNAde_mRNAde_list<-sapply(1:30, function(i) sample(1:46000000, length(mRNAde_mRNAde_list[[i]]), replace=TRUE))
+
+# Take the random start coordinates and calculate the end coordinate using the distance between original transcripts
+end_mRNAde_lncRNAde_list<-sapply(1:30, function(i) start_mRNAde_lncRNAde_list[[i]]+distance_mRNAde_lncRNAde_list[[i]])
+end_mRNAde_mRNAde_list<-sapply(1:30, function(i) start_mRNAde_mRNAde_list[[i]]+distance_mRNAde_mRNAde_list[[i]])
+
+# Putting together the information about the chromosome, start and end coordinates
+random_mRNAde_lncRNAde_list<-lapply(1:30, function(i) data.frame(chr_mRNAde_lncRNAde_list[[i]], start_mRNAde_lncRNAde_list[[i]], end_mRNAde_lncRNAde_list[[i]]))
+random_mRNAde_mRNAde_list<-lapply(1:30, function(i) data.frame(chr_mRNAde_mRNAde_list[[i]], start_mRNAde_mRNAde_list[[i]], end_mRNAde_mRNAde_list[[i]]))
+#-----------------------------------------------------------------------------------------------------------
+# Saving the coordinates from one TSS to another TSS of mRNAde-lncRNAde and mRNAde-mRNAde pairs
+
+lapply(seq_along(mRNAde_lncRNAde_list),
+       function(i)(write.csv(as.data.frame(mRNAde_lncRNAde_list[[i]]),
+                             file =paste0("mRNAdelncRNAde_TSScoordinates_",distance[i],'.csv'))))
+
+lapply(seq_along(mRNAde_mRNAde_list),
+       function(i)(write.csv(as.data.frame(mRNAde_mRNAde_list[[i]]),
+                             file =paste0("mRNAdemRNAde_TSScoordinates_",distance[i],'.csv'))))
+
+# Also saving the coordinates from the randomized TSS to another TSS of mRNAde_lncRNAde and mRNAde-mRNAde pairs
+lapply(seq_along(random_mRNAde_lncRNAde_list),
+       function(i)(write.csv(as.data.frame(random_mRNAde_lncRNAde_list[[i]]),
+                             file =paste0("random_mRNAdelncRNAde_TSScoordinates_",distance[i],'.csv'))))
+
+lapply(seq_along(random_mRNAde_mRNAde_list),
+       function(i)(write.csv(as.data.frame(random_mRNAde_mRNAde_list[[i]]),
+                             file =paste0("random_mRNAdemRNAde_TSScoordinates_",distance[i],'.csv'))))
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# The next section here segregates the coordinate lists based on whether the mRNAde-lncRNAde pair is divergent or 
+# not in its transcriptional orientation
+
+# Reverting TSS to TSS coordinates of mRNAde-lncRNAde pairs from GRanges into data frames
+
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(mRNAde_lncRNAde_list[[i]]))
+
+# Opening up the transcriptional orientation classification information 
+mRNAde_lncRNAde_classification_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "classification", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_classification/mRNAde_lncRNAde_classification_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)[,-1]))
+
+# Joining the transcriptional orientation information with the coordinates data
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]],mRNAde_lncRNAde_classification_list[[i]]$V7, stringsAsFactors=FALSE)))
+
+# Setting the column names
+mRNAde_lncRNAde_list<-lapply(mRNAde_lncRNAde_list, setNames, nm= c("chr", "start", "end", "width", "strand", "class"))
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+# Making duplicates of the mRNAde_lncRNAde_list- one for divergent and another for nondivergent subsets
+divergent_mRNAde_lncRNAde_list<-mRNAde_lncRNAde_list
+nondivergent_mRNAde_lncRNAde_list<-mRNAde_lncRNAde_list
+
+# Keeping only those pairs that are divergent
+divergent_mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) mRNAde_lncRNAde_list[[i]][(mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional"),])
+
+# Keeping only those pairs that are nondivergent
+nondivergent_mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) mRNAde_lncRNAde_list[[i]][(mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional"),])
+
+#-----------------------------------------------------------------------------------------------------------
+# Next create a list of random genomic coordinates which will be on the same chromosomes as the original
+# transcript pairs and be of same distance away from each other
+set.seed(1)
+
+# Start by recording the chromosome information of transcript pairs
+chr_divergent_list<- sapply(1:30, function(i) divergent_mRNAde_lncRNAde_list[[i]]$chr)
+chr_nondivergent_list<-sapply(1:30, function(i) nondivergent_mRNAde_lncRNAde_list[[i]]$chr)
+
+# Record the distance between original transcript pairs to keep that consistent
+distance_divergent_list<-sapply(1:30, function(i) divergent_mRNAde_lncRNAde_list[[i]]$width)
+distance_nondivergent_list<-sapply(1:30, function(i) nondivergent_mRNAde_lncRNAde_list[[i]]$width)
+
+# Pick a random number to be the start chromosome. The values go up to 46 million because that's the number
+# of nucleotides in the shortest chromosome
+start_divergent_list<-sapply(1:30, function(i) sample(1:46000000, nrow(divergent_mRNAde_lncRNAde_list[[i]]), replace=TRUE))
+start_nondivergent_list<-sapply(1:30, function(i) sample(1:46000000, nrow(nondivergent_mRNAde_lncRNAde_list[[i]]), replace=TRUE))
+
+# Take the random start coordinates and calculate the end coordinate using the distance between original transcripts
+end_divergent_list<-sapply(1:30, function(i) start_divergent_list[[i]]+distance_divergent_list[[i]])
+end_nondivergent_list<-sapply(1:30, function(i) start_nondivergent_list[[i]]+distance_nondivergent_list[[i]])
+
+# Putting together the information about the chromosome, start and end coordinates
+random_divergent_list<-lapply(1:30, function(i) data.frame(chr_divergent_list[[i]], start_divergent_list[[i]], end_divergent_list[[i]]))
+random_nondivergent_list<-lapply(1:30, function(i) data.frame(chr_nondivergent_list[[i]], start_nondivergent_list[[i]], end_nondivergent_list[[i]]))
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#Saving the TSS-TSS coordinates for the divergent and nondivergent mRNAde-lncRNAde lists
+
+lapply(seq_along(divergent_mRNAdelncRNAde_list),
+       function(i)(write.csv(as.data.frame(divergent_mRNAdelncRNAde_list[[i]]),
+                             file =paste0("divergent_mRNAdelncRNAde_TSScoordinates_",distance[i],'.csv'))))
+
+lapply(seq_along(nondivergent_mRNAdelncRNAde_list),
+       function(i)(write.csv(as.data.frame(nondivergent_mRNAdelncRNAde_list[[i]]),
+                             file =paste0("nondivergent_mRNAdelncRNAde_TSScoordinates_",distance[i],'.csv'))))
+
+# Also saving the coordinates from the randomized TSS to another TSS of divergent/nondivergent pairs
+lapply(seq_along(random_divergent_list),
+       function(i)(write.csv(as.data.frame(random_divergent_list[[i]]),
+                             file =paste0("random_divergent_mRNAdelncRNAde_TSScoordinates_",distance[i],'.csv'))))
+
+lapply(seq_along(random_nondivergent_list),
+       function(i)(write.csv(as.data.frame(random_nondivergent_list[[i]]),
+                             file =paste0("random_nondivergent_mRNAdelncRNAde_TSScoordinates_",distance[i],'.csv'))))
