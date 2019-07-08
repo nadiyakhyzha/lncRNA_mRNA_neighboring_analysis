@@ -1,0 +1,235 @@
+# Title: 10_TAD_Assignment
+# Purpose: To assign whether the mRNA-lncRNA pairs are on the same TAD or not and to
+# see whether that influences their correlation in expression
+# Packages: "GenomicRanges"
+require(GenomicRanges)
+# Input Files: "HUVEC_TAD", "mRNAde_lncRNAde_[distance]", "lncRNA_IL1B_differentiallyexpressed", "mRNA_IL1B_differentiallyexpressed"
+# Output Files: "TAD_Assignment_lncRNAdemRNAde_[distance]", TAD_Tabulation, TAD_Spearman_Correlation, TAD_distance_comparison
+# Output Graph: "spearman_correlation_mRNAdelncRNAde_TAD"
+
+#--------------------------------------------------------------------------------------
+# Open the data file with HUVEC TAD boundaries data
+HUVEC_TAD<- read.delim("Path/GSE63525_HUVEC_Arrowhead_domainlist.txt", stringsAsFactors=FALSE)[,1:3]
+# Change from just number for the chromosome into "chr" + number
+HUVEC_TAD$chr1<-sapply(1:nrow(HUVEC_TAD), function(i) paste0("chr",as.character(HUVEC_TAD$chr1[i])))
+# Change the column names of the HUVEC_TAD dataframe
+colnames(HUVEC_TAD)<-c("chr", "start", "end")
+# Turn the HUVEC_TAD dataframe into GRanges
+HUVEC_TAD<-makeGRangesFromDataFrame(HUVEC_TAD)
+
+#--------------------------------------------------------------------------------------
+# Loading the mRNA-lncRNA neighboring pair csv files 
+# Start by setting up a list of genomic distances for which to open up the files
+distance<-as.integer(c(seq(5000, 100000, 5000),125000,150000,175000,200000,
+                       225000, 250000,275000, 300000, 400000, 500000))
+
+# Opening up the mRNA-lncRNA neighboring pairs for the selected genomic distances and combining all these dataframes in one list
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_",distance[i],".csv", sep=""), stringsAsFactors=FALSE)))
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# Now opening up the files with the coordinates of lncRNAs and mRNAs
+
+lncRNA_coordinates <- read.csv("Path/lncRNA_IL1B_differentiallyexpressed.csv")
+lncRNA_coordinates<-lncRNA_coordinates[complete.cases(lncRNA_coordinates),]
+lncRNA_coordinates<-lncRNA_coordinates[!duplicated(lncRNA_coordinates$lncRNA),]
+
+mRNA_coordinates <- read.csv("Path/mRNA_IL1B_differentiallyexpressed.csv")
+mRNA_coordinates<-mRNA_coordinates[complete.cases(mRNA_coordinates),]
+mRNA_coordinates<-mRNA_coordinates[!duplicated(mRNA_coordinates$mRNA),]
+
+#-----------------------------------------------------------------------------------------------------------
+# Here use the names of mRNA/lncRNA of interest to retrieve its coordinates from the
+# lncRNA_coordinates/ mRNA_coordinates dataframe.
+# The coordinates data is than combined
+
+# Perform for lncRNAs from mRNAde_lncRNAde pairs
+lncRNA_chr<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),2])))
+lncRNA_start<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),3])))
+lncRNA_end<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),4])))
+lncRNA_strand<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_coordinates$lncRNA),5])))
+
+lncRNA_frommRNAdelncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]]$lncRNA_Symbol, lncRNA_chr[[i]], lncRNA_start[[i]], lncRNA_end[[i]], lncRNA_strand[[i]]), stringsAsFactors=FALSE))
+
+# Next perform for mRNAs from mRNAde_lncRNAde pairs
+mRNA_chr<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),3])))
+mRNA_start<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),4])))
+mRNA_end<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),5])))
+mRNA_strand<-sapply(seq_along(distance), function(i) sapply(1:nrow(mRNAde_lncRNAde_list[[i]]), function(j) as.character(mRNA_coordinates[as.character(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_coordinates$mRNA),6])))
+
+mRNA_frommRNAdelncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]]$mRNA_Symbol, mRNA_chr[[i]], mRNA_start[[i]], mRNA_end[[i]], mRNA_strand[[i]]), stringsAsFactors=FALSE))
+
+#-----------------------------------------------------------------------------------------------------------
+# Changing the column names for the dataframes 
+lncRNA_frommRNAdelncRNAde_list<-lapply(lncRNA_frommRNAdelncRNAde_list, setNames, nm=c("name", "chr", "start", "end", "strand"))
+mRNA_frommRNAdelncRNAde_list<-lapply(mRNA_frommRNAdelncRNAde_list, setNames, nm=c("name", "chr", "start", "end", "strand"))
+
+# Converting from dataframe into GRanges
+lncRNA_frommRNAdelncRNAde_list<-sapply(seq_along(distance), function(i) makeGRangesFromDataFrame(lncRNA_frommRNAdelncRNAde_list[[i]], keep.extra.columns = TRUE))
+mRNA_frommRNAdelncRNAde_list<-sapply(seq_along(distance), function(i) makeGRangesFromDataFrame(mRNA_frommRNAdelncRNAde_list[[i]], keep.extra.columns = TRUE))
+
+#-----------------------------------------------------------------------------------------------------------
+# Use the "TAD_Assignment" function to check whether the mRNA and lncRNA fall on the same or different TAD or
+# not on a TAD
+
+TAD_Assignment<-function(lncRNA, mRNA, TAD){
+
+# The function takes in the lncRNA coordinates GRanges, the mRNA coordinates GRanges, and the HUVEC TAD
+# boundaries data as GRanges
+
+lncRNA<-lncRNA
+mRNA<-mRNA
+TAD<-TAD
+  
+# Testing whether a lncRNA or an mRNA falls within a TAD using the findOverlaps function from the GRanges package
+  test<-as.data.frame(findOverlaps(lncRNA, TAD, type="within", select="first", ignore.strand=TRUE))
+  test2<-as.data.frame(findOverlaps(mRNA, TAD, type="within", select="first", ignore.strand=TRUE))
+  
+# Reverting the lncRNA and mRNA coordinates files from GRanges back into dataframe
+  lncRNA<-as.data.frame(lncRNA)
+  mRNA<-as.data.frame(mRNA)
+
+# Adding in TAD data into the lncRNA and mRNA coordinates file
+  lncRNA[,6]<-test
+  mRNA[,6]<-test2
+
+# If the lncRNA or mRNA does not fall on a TAD, make that as 0
+# However, if the lncRNA or mRNA does fall on a TAD than keep the number corresponding to that TAD
+  lncRNA[,6]<-sapply(1:nrow(lncRNA), function(i) ifelse(is.na(lncRNA[i,6]),0,lncRNA[i,6]))
+  mRNA[,6]<-sapply(1:nrow(mRNA), function(i) ifelse(is.na(mRNA[i,6]),0,mRNA[i,6]))
+
+# Grooming the dataframes by specifying column names
+  colnames(lncRNA)<-c("chr", "start", "end", "width", "strand", "TAD")
+  colnames(mRNA)<-c("chr", "start", "end", "width", "strand", "TAD")
+  
+# Make all mRNA-lncRNA pairs that do not fall on a TAD (marked as 0) to correspond to "no TAD"
+  lncRNA[(lncRNA$TAD)==0,7]<-"no TAD"
+
+# Check whether the mRNA and the lncRNA fall within the same TAD or a different TAD. Mark that down
+  lncRNA[,7]<-unlist(sapply(1:nrow(lncRNA), function(i) 
+    if ((lncRNA$TAD[i]!=0)&(mRNA$TAD[i]!=0)&(lncRNA$TAD[i]==mRNA$TAD[i])){
+      lncRNA[i,7]<-"same TAD"
+    } else if (lncRNA$TAD[i]!=mRNA$TAD[i]){
+      lncRNA[i,7]<-"different TAD"
+    } else lncRNA[i,7]<-"no TAD"
+  ))
+
+# Return the lncRNA coordinate file alongside with TAD related information
+return(lncRNA)
+} 
+
+#--------------------------------------------------------------------------------------
+# Run the "TAD_Assignment" function for the mRNAde-lncRNAde list. Record it as Assigned_TADs
+Assigned_TADs<-lapply(1:30, function(i) TAD_Assignment(lncRNA_frommRNAdelncRNAde_list[[i]],
+                                                       mRNA_frommRNAdelncRNAde_list[[i]], HUVEC_TAD))
+# Save the Assigned_TADs
+
+lapply(seq_along(Assigned_TADs),
+       function(i)(write.csv(Assigned_TADs[[i]],
+                             file =paste0("TAD_Assignment_lncRNAdemRNAde_",distance[i],".csv"))))
+
+#--------------------------------------------------------------------------------------
+# Tabulated the number of mRNAde-lncRNAde pairs that are within the same, different, or no TADs
+
+same_TAD<-sapply(seq_along(distance),function(i) sum(Assigned_TADs[[i]]$V7=="same TAD"))
+different_TAD<-sapply(seq_along(distance),function(i) sum(Assigned_TADs[[i]]$V7=="different TAD"))
+no_TAD<-sapply(seq_along(distance),function(i) sum(Assigned_TADs[[i]]$V7=="no TAD"))
+
+# Combined all of these tabulations into one dataframe
+TAD_Tab<-data.frame(distance, same_TAD, different_TAD, no_TAD)
+# Save the dataframe as a file
+
+#-----------------------------------------------------------------------------------------------------------
+# Testing whether being on the same or different TAD makes a difference on the correlation in expression of 
+# the mRNAde-lncRNAde pair
+
+# Merge the mRNAde-lncRNAde expression data with the TAD assignemnt information
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]], Assigned_TADs[[i]][,7], stringsAsFactors=FALSE)))
+# Groom by changing the columnnames 
+mRNAde_lncRNAde_list<-lapply(mRNAde_lncRNAde_list, setNames, nm= c("mRNA", "lncRNA", "V3", "V4", "TAD"))
+
+#-----------------------------------------------------------------------------------------------------------
+#This function will convert spearman rho values into z-scores and than performed t-test
+
+cor.diff.test = function(n1, r1, n2, r2) {
+
+# n1 is the number of pairs for the first set
+# r1 is the rho coefficient for the first set
+# n2 is the number of pairs for the second set
+# r2 is the rho coefficient for the second set
+  
+  r1 = r1
+  r2 = r2
+  n1 = n1
+  n2 = n2
+  fisher = ((0.5*log((1+r1)/(1-r1)))-(0.5*log((1+r2)/(1-r2))))/((1/(n1-3))+(1/(n2-3)))^0.5
+  
+  p.value = (2*(1-pnorm(abs(fisher))))
+  
+  return(as.numeric(p.value))
+}
+
+#-----------------------------------------------------------------------------------------------------------
+# Calculate the number of mRNAde-lncRNAde pairs and their correlation in expression depending on their 
+# TAD assignment
+
+n_same_TAD<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$TAD=="same TAD"))
+rho_same_TAD<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="same TAD",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="same TAD",4]), method="spearman")$estimate)
+pvalue_rho_same_TAD<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="same TAD",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="same TAD",4]), method="spearman")$p.value)
+
+n_different_TAD<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$TAD=="different TAD"))
+rho_different_TAD<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="different TAD",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="different TAD",4]), method="spearman")$estimate)
+pvalue_rho_different_TAD<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="different TAD",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="different TAD",4]), method="spearman")$p.value)
+
+n_no_TAD<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$TAD=="no TAD"))
+rho_no_TAD<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="no TAD",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="no TAD",4]), method="spearman")$estimate)
+pvalue_rho_no_TAD<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="no TAD",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$TAD=="no TAD",4]), method="spearman")$p.value)
+
+# Also perform statistical significance tests to see whether being on same vs different or same vs no TAD 
+# is actually statistically different
+
+pvalue_samevsdif<-sapply(seq_along(distance), function(i) cor.diff.test(n_same_TAD[i], rho_same_TAD[i], n_different_TAD[i], rho_different_TAD[i]))
+pvalue_samevsno<-sapply(seq_along(distance), function(i) cor.diff.test(n_same_TAD[i], rho_same_TAD[i], n_no_TAD[i], rho_no_TAD[i]))
+
+# Next correcting for multiple testing using Bonferroni
+
+adj_pvalue_samevsdif<-p.adjust(pvalue_samevsdif, method="bonferroni")
+adj_pvalue_samevsno<-p.adjust(pvalue_samevsno, method="bonferroni")
+
+# Combine all of this data into a dataframe
+correlation_TAD<-data.frame(distance, n_same_TAD, rho_same_TAD, pvalue_rho_same_TAD, n_different_TAD, rho_different_TAD, 
+                            pvalue_rho_different_TAD, n_no_TAD, rho_no_TAD, pvalue_rho_no_TAD,
+                            pvalue_samevsdif, adj_pvalue_samevsdif, 
+                            pvalue_samevsno, adj_pvalue_samevsno)
+# Save this dataframe
+
+#-----------------------------------------------------------------------------------------------------------
+# Plotting the correlation in expression for specified genomic distances
+# Remove some of the shorter distance to make the graph less cluttered
+
+correlation_TAD<-correlation_TAD[c(5,10,15,20:30),]
+distances<-c("25000","50000", "75000", "100000",125000,150000,175000,200000,
+             225000, 250000,275000, 300000, 400000, 500000)
+
+# Plotting
+pdf("spearman_correlation_mRNAdelncRNAde_TAD.pdf", height = 4, width = 6, paper="special")
+plot(correlation_TAD[,3]~distances, type = "o", lwd=3, pch=19, col = "darkgreen", ylim=c(-0.1,1), xlab= "distance", ylab= "Spearman Correlation Coefficient (rho)")
+lines(correlation_TAD[,6]~distances, type = "o", lwd=3,pch=19, col = "black")
+lines(correlation_TAD[,9]~distances, type = "o",lwd=3, pch=19, col = "grey")
+legend(240000, 1.08, legend=c("same TAD", "different TAD", "boundary/ disorganized chromatin"),
+       col=c("darkgreen", "black", "grey"), lty=1, pch=c(19,19,19), cex=0.8, box.lty=0)
+dev.off()
+
+#--------------------------------------------------------------------------------------------------------------------
+# Next step is to see whether genomic distance has any statistically significant role on correlation 
+# in expression.
+correlation_TAD<-correlation_TAD[1:12,]
+
+comparison_pvalues<-sapply(1:11, function(i) cor.diff.test(correlation_TAD[1,2],correlation_TAD[1,3],correlation_TAD[(1+i),2],correlation_TAD[(1+i),3]))
+adj_comparison_pvalues<-p.adjust(comparison_pvalues, method="bonferroni")
+
+comparison<-c("25kb vs 50kb", "25kb vs 75kb", "25kb vs 100kb",
+              "25kb vs 125kb", "25kb vs 150kb", "25kb vs 175kb",
+              "25kb vs 200kb", "25kb vs 225kb", "25kb vs 250kb",
+              "25kb vs 275kb", "25kb vs 300kb")
+TAD_distance_comparison<-cbind(comparison, comparison_pvalues, adj_comparison_pvalues)
+# Save TAD_distance_comparison 
