@@ -1,0 +1,237 @@
+# Title: 8_Neighboring_Correlation
+# Purpose: To calculate the correlation in expression of neighboring transcript pairs and to plot it
+# Packages: "ggplot2"
+
+require(ggplot2)
+
+# Input files: "mRNAde_lncRNAde_[distance]", "all_mRNAlncRNA_[distance],
+# "mRNAde_mRNAde_[distance], and "all_mRNAmRNA_[distance]
+# Output files: "correlation", "distance_comparison"
+# Output graphs: "scatterplot_spearman_50kb_mRNAdelncRNAde", "scatterplot_spearman_150kb_mRNAdelncRNAde",
+# "scatterplot_spearman_300kb_mRNAdelncRNAde", "scatterplot_spearman_50kb_mRNAdeMRNAde",
+# "scatterplot_spearman_150kb_mRNAdeMRNAde", "scatterplot_spearman_300kb_mRNAdeMRNAde",
+# "spearman_correlation_mRNAdelncRNAde_mRNAdemRNAde.pdf"
+
+#--------------------------------------------------------------------------------------------------------------------
+# Loading the mRNA-lncRNA neighboring pair csv files 
+# Start by setting up a list of genomic distances for which to open up the files
+distance<-as.integer(c(seq(5000, 100000, 5000),125000,150000,175000,200000,
+                       225000, 250000,275000, 300000, 400000, 500000))
+
+# Opening up the mRNAde-lncRNAde neighboring pairs for the selected genomic distances and combining all these dataframes in one list
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)))
+
+# Opening up the mRNAde-mRNAde neighboring pairs for the selected genomic distances and combining all these dataframes in one list
+mRNAde_mRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_mRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_mRNAde/mRNAde_mRNAde_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)))
+
+# For genomic background control open up the list of all mRNA-lncRNA pairs regardless of whether they're IL1B regulated
+all_mRNA_lncRNA_list<-lapply(c(5,10,15,20:30), function(i)   assign(paste("all_mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNA_lncRNA/mRNA_lncRNA_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)))
+
+# and all mRNA-mRNA pairs
+all_mRNA_mRNA_list<-lapply(c(5,10,15,20:30), function(i)   assign(paste("all_mRNA_mRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNA_mRNA/mRNA_mRNA_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)))
+
+#--------------------------------------------------------------------------------------------------------------------
+# Next will be retrieving and calculating the fold changes for all mRNA-lncRNA and all mRNA-mRNA pairs
+
+
+# ************   Run 1_Differential_Expression.R to get the fold changes     *****************
+
+
+# First fill out for those of all mRNA-lncRNA pairs
+mRNA_fc<-sapply(1:14, function(i) sapply(1:nrow(all_mRNA_lncRNA_list[[i]]), function(j) as.character(mRNA_IL1B_all[as.character(all_mRNA_lncRNA_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_IL1B_all$mRNA),15])))
+lncRNA_fc<-sapply(1:14, function(i) sapply(1:nrow(all_mRNA_lncRNA_list[[i]]), function(j) as.character(lncRNA_IL1B_all[as.character(all_mRNA_lncRNA_list[[i]]$lncRNA_Symbol[j])==as.character(lncRNA_IL1B_all$lncRNA),14])))
+
+all_mRNA_lncRNA_list<-lapply(1:14, function(i) as.data.frame(cbind(all_mRNA_lncRNA_list[[i]], as.numeric(mRNA_fc[[i]]), as.numeric(lncRNA_fc[[i]])), stringsAsFactors=FALSE))
+
+# Afterwards for all mRNA-mRNA pairs
+mRNA_fc<-sapply(1:14, function(i) sapply(1:nrow(all_mRNA_mRNA_list[[i]]), function(j) as.character(mRNA_IL1B_all[as.character(all_mRNA_mRNA_list[[i]]$mRNA_Symbol[j])==as.character(mRNA_IL1B_all$mRNA),15])))
+mRNA2_fc<-sapply(1:14, function(i) sapply(1:nrow(all_mRNA_mRNA_list[[i]]), function(j) as.character(mRNA_IL1B_all[as.character(all_mRNA_mRNA_list[[i]]$mRNA2_Symbol[j])==as.character(mRNA_IL1B_all$mRNA),15])))
+
+all_mRNA_mRNA_list<-lapply(1:14, function(i) as.data.frame(cbind(all_mRNA_mRNA_list[[i]], as.numeric(mRNA_fc[[i]]), as.numeric(mRNA2_fc[[i]])), stringsAsFactors=FALSE))
+
+
+#--------------------------------------------------------------------------------------------------------------------
+# Making scatterplot of mRNAde-lncRNAde expression for the 50kb, 150kb, and 300kb distance
+
+pdf("scatterplot_spearman_50kb_mRNAdelncRNAde.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(mRNAde_lncRNAde_list[[10]], aes(x=V3, y=V4)) + 
+  geom_point(color="red", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_150kb_mRNAdelncRNAde.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(mRNAde_lncRNAde_list[[22]], aes(x=V3, y=V4)) + 
+  geom_point(color="red", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_300kb_mRNAdelncRNAde.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(mRNAde_lncRNAde_list[[28]], aes(x=V3, y=V4)) + 
+  geom_point(color="red", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+#--------------------------------------------------------------------------------------------------------------------
+# Making scatterplot of mRNAde-mRNAde expression for the 50kb, 150kb, and 300kb distance
+
+pdf("scatterplot_spearman_50kb_mRNAdemRNAde.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(mRNAde_mRNAde_list[[10]], aes(x=V3, y=V4)) + 
+  geom_point(color="blue", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_150kb_mRNAdemRNAde.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(mRNAde_mRNAde_list[[22]], aes(x=V3, y=V4)) + 
+  geom_point(color="blue", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_300kb_mRNAdemRNAde.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(mRNAde_mRNAde_list[[28]], aes(x=V3, y=V4)) + 
+  geom_point(color="blue", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+#--------------------------------------------------------------------------------------------------------------------
+# Making scatterplot of all mRNA-lncRNA expression for the 50kb, 150kb, and 300kb distance
+
+pdf("scatterplot_spearman_50kb_allmRNAlncRNA.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(all_mRNA_lncRNA_list[[2]], aes(x=V3, y=V4)) + 
+  geom_point(color="grey", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_150kb_allmRNAlncRNA.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(all_mRNA_lncRNA_list[[6]], aes(x=V3, y=V4)) + 
+  geom_point(color="grey", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_300kb_allmRNAlncRNA.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(all_mRNA_lncRNA_list[[12]], aes(x=V3, y=V4)) + 
+  geom_point(color="grey", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+#--------------------------------------------------------------------------------------------------------------------
+# Making scatterplot of mRNAde-mRNAde expression for the 50kb, 150kb, and 300kb distance
+
+pdf("scatterplot_spearman_50kb_allmRNAmRNA.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(all_mRNA_mRNA_list[[2]], aes(x=V3, y=V4)) + 
+  geom_point(color="grey", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_150kb_allmRNAmRNA.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(all_mRNA_mRNA_list[[6]], aes(x=V3, y=V4)) + 
+  geom_point(color="grey", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+pdf("scatterplot_spearman_300kb_allmRNAmRNA.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(all_mRNA_mRNA_list[[12]], aes(x=V3, y=V4)) + 
+  geom_point(color="grey", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+#--------------------------------------------------------------------------------------------------------------------
+# Calculating the number of transcript pairs and the spearman rho correlation coefficient
+# First for mRNAde-lncRNAde pairs
+
+n_mRNAdelncRNAde<-sapply(seq_along(distance), function(i) nrow(mRNAde_lncRNAde_list[[i]]))
+rho_mRNAdelncRNAde<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]][,4]), 2^(mRNAde_lncRNAde_list[[i]][,5]), method="spearman")$estimate)
+
+# Afterwards for mRNAde-mRNAde pairs
+n_mRNAdemRNAde<-sapply(seq_along(distance), function(i) nrow(mRNAde_mRNAde_list[[i]]))
+rho_mRNAdemRNAde<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_mRNAde_list[[i]][,4]), 2^(mRNAde_mRNAde_list[[i]][,5]), method="spearman")$estimate)
+
+# Now repeat the same thing but for all mRNA-lncRNA pairs and than all mRNA-mRNA pairs
+n_allmRNAlncRNA<-sapply(1:14, function(i) nrow(all_mRNA_lncRNA_list[[i]]))
+rho_allmRNAlncRNA<-sapply(1:14, function(i) cor.test(2^(all_mRNA_lncRNA_list[[i]][,4]), 2^(all_mRNA_lncRNA_list[[i]][,5]), method="spearman")$estimate)
+
+n_allmRNAmRNA<-sapply(1:14, function(i) nrow(all_mRNA_mRNA_list[[i]]))
+rho_allmRNAmRNA<-sapply(1:14, function(i) cor.test(2^(all_mRNA_mRNA_list[[i]][,4]), 2^(all_mRNA_mRNA_list[[i]][,5]), method="spearman")$estimate)
+
+#--------------------------------------------------------------------------------------------------------------
+# Next perform statistical test to see whether there's any dignifican difference between mRNAde-lncRNAde
+# pairs vs mRNAde-mRNAde pairs. This function will convert spearman rho values into z-scores and than performed
+# t-test
+
+cor.diff.test = function(n1, r1, n2, r2) {
+  # n1 is the number of pairs for the first set
+  # r1 is the rho coefficient for the first set
+  # n2 is the number of pairs for the second set
+  # r2 is the rho coefficient for the second set
+  
+  r1 = r1
+  r2 = r2
+  n1 = n1
+  n2 = n2
+  fisher = ((0.5*log((1+r1)/(1-r1)))-(0.5*log((1+r2)/(1-r2))))/((1/(n1-3))+(1/(n2-3)))^0.5
+  
+  p.value = (2*(1-pnorm(abs(fisher))))
+  
+  return(as.numeric(p.value))
+}
+
+#--------------------------------------------------------------------------------------------------------------
+# Removing some of the shorter distance to make the graph less cluttered
+n_mRNAdelncRNAde<-n_mRNAdelncRNAde[c(5,10,15,20:30)]
+rho_mRNAdelncRNAde<-rho_mRNAdelncRNAde[c(5,10,15,20:30)]
+
+n_mRNAdemRNAde<-n_mRNAdemRNAde[c(5,10,15,20:30)]
+rho_mRNAdemRNAde<-rho_mRNAdemRNAde[c(5,10,15,20:30)]
+
+distances<-distance[c(5,10,15,20:30)]
+#--------------------------------------------------------------------------------------------------------------
+# Applying the "cor.diff.test" 
+pvalues_mRNAlncRNA<-cor.diff.test(n_mRNAdelncRNAde, rho_mRNAdelncRNAde, n_allmRNAlncRNA, rho_allmRNAlncRNA)
+pvalues_mRNAmRNA<-cor.diff.test(n_mRNAdemRNAde, rho_mRNAdemRNAde, n_allmRNAmRNA, rho_allmRNAmRNA)
+pvalues_mRNAvslncRNA<-cor.diff.test(n_mRNAdelncRNAde, rho_mRNAdelncRNAde, n_mRNAdemRNAde, rho_mRNAdemRNAde)
+
+# Next adjust the p values for multiple correction using bonferroni
+adj_pvalues_mRNAlncRNA<-p.adjust(pvalues_mRNAlncRNA, method= "bonferroni")
+adj_pvalues_mRNAmRNA<-p.adjust(pvalues_mRNAmRNA, method= "bonferroni")
+adj_pvalues_mRNAvslncRNA<-p.adjust(pvalues_mRNAvslncRNA, method= "bonferroni")
+
+#--------------------------------------------------------------------------------------------------------------
+# Combining all of the recent calculations into one dataframe
+correlation<-cbind.data.frame(n_mRNAdelncRNAde, rho_mRNAdelncRNAde, n_mRNAdemRNAde,
+                              rho_mRNAdemRNAde, n_allmRNAlncRNA, rho_allmRNAlncRNA, n_allmRNAmRNA, 
+                              rho_allmRNAmRNA, pvalues_mRNAlncRNA, adj_pvalues_mRNAlncRNA, 
+                              pvalues_mRNAmRNA, adj_pvalues_mRNAmRNA, pvalues_mRNAvslncRNA,
+                              adj_pvalues_mRNAvslncRNA)
+rownames(correlation)<-distances
+# Save the correlation file 
+
+#--------------------------------------------------------------------------------------------------------------
+# Graphing the spearman correlation for its respective distances for mRNAde-lncRNAde, mRNAde-mRNAde,
+# and all_mRNA-lncRNA, all_mRNA-mRNA 
+
+pdf("spearman_correlation_mRNAdelncRNAde_mRNAdemRNAde.pdf", height = 4, width = 6, paper="special")
+plot(correlation[,2]~distances, type = "o", lwd=3, pch=19, col = "red", ylim=c(-0.1,1), xaxt='n', xlab= "distance", ylab= "Spearman Correlation Coefficient (rho)")
+lines(correlation[,4]~distances, type = "o", lwd=3,pch=19, col = "blue")
+lines(correlation[,5]~distances, type = "o", lwd=3, pch=19, col = "grey")
+lines(correlation[,6]~distances, type = "o", lwd=3,pch=17, col = "grey")
+axis(1, seq(0,500000, 100000))
+legend(300000, 1.02, legend=c("mRNA-lncRNA", "mRNA-mRNA", "random mRNA-lncRNA", "random mRNA-mRNA"),
+       col=c("red", "blue", "grey", "grey"), lty=1, pch=c(19,19,19,17), cex=0.8, box.lty=0)
+dev.off()
+
+
+#--------------------------------------------------------------------------------------------------------------------
+# Next step is to see whether genomic distance has any statistically significant role on correlation 
+# in expression.
+
+comparison_pvalues<-sapply(1:11, function(i) cor.diff.test(correlation[1,1],correlation[1,2],correlation[(1+i),1],correlation[(1+i),2]))
+
+# Adjusting for multiple comparison testing
+adj_comparison_pvalues<-p.adjust(comparison_pvalues, method="bonferroni")
+
+# Combining all of the statistical test information into a table
+comparison<-c("25kb vs 50kb", "25kb vs 75kb", "25kb vs 100kb",
+                        "25kb vs 125kb", "25kb vs 150kb", "25kb vs 175kb",
+                        "25kb vs 200kb", "25kb vs 225kb", "25kb vs 250kb",
+                        "25kb vs 275kb", "25kb vs 300kb")
+distance_comparison<-cbind(comparison, comparison_pvalues, adj_comparison_pvalues)
+# Save the distance_comparison as a file
