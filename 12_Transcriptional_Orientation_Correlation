@@ -2,7 +2,7 @@
 # Purpose: To calculate the correlation in expression of mRNAde-lncRNAde 
 # depending on their transcriptional orientation
 # Packages: None
-# Input Files: "mRNAde_lncRNAde_[distance]", "mRNAdelncRNAde_TranscriptionalOrientation_[distance]",
+# Input Files: "mRNAde_lncRNAde_[distance]", "mRNAdelncRNAde_transcriptional_classification_[distance]",
 # Output Files: "SpearmanCorrelation_TranscriptionalOrientation", "SpearmanCorrelation_Divergent_vs_Nondivergent"
 # Output Graphs: "spearman_correlation_mRNAlncRNA_transcriptionalorientation", "spearman_correlation_mRNAlncRNA_divergent"
 #-------------------------------------------------------------------------------------------------
@@ -15,7 +15,7 @@ distance<-as.integer(c(seq(5000, 100000, 5000),125000,150000,175000,200000,
 # Opening up the mRNA-lncRNA neighboring pairs for the selected genomic distances and combining all these dataframes in one list
 mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_", distance[i], "_up_downstream.csv", sep=""), stringsAsFactors=FALSE)))
 
-mRNAde_lncRNAde_classification_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "classification", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_TranscriptionalOrientation/mRNAde_lncRNAde_TranscriptionalOrientation_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)[,-1]))
+mRNAde_lncRNAde_classification_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "classification", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_transcriptional_classification/mRNAde_lncRNAde_transcriptional_classification_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)[,-1]))
 
 # Joining the transcriptional orientation information with the expression data
 mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]],mRNAde_lncRNAde_classification_list[[i]]$V6, mRNAde_lncRNAde_classification_list[[i]]$V7, stringsAsFactors=FALSE)))
