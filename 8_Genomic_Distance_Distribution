@@ -1,0 +1,177 @@
+# Title: 8_Genomic_Distance_Distribution
+# Purpose: To determine the distribution of distances between mRNA's and their neighboring
+# transcripts. The Kernel Density will be calculated. 
+# Packages: "GenomicRanges", "vioplot", "sm", "ggplot2"
+
+require(GenomicRanges)
+require(vioplot)
+require(sm)
+require(ggplot2)
+
+# Addition Function File: "ViolinPlotFunction.R"
+# Input Files: "mRNAde_lncRNA_500000", "mRNAde_lncRNAde_500000", "mRNAde_mRNA_500000", "mRNAde_mRNAde_500000"
+# "lncRNA_IL1B_differentiallyexpressed", "mRNA_IL1B_differentiallyexpressed"
+# Output Graph: "mRNAlncRNA_mRNAmRNA_distance_violinplot"
+
+# -----------------------------------------------------------------------------------------------------------------
+# Opening the files containing mRNA-lncRNA/mRNA-mRNA neighboring pair names
+
+assign(paste("mRNAde_lncRNA_","500000",  sep=""), read.csv(paste("Path/mRNAde_lncRNA_", "500000", ".csv", sep=""), stringsAsFactors=FALSE)[,c(2:3)])
+assign(paste("mRNAde_lncRNAde_","500000", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_", "500000", ".csv", sep=""), stringsAsFactors=FALSE)[,c(2:3)])
+
+assign(paste("mRNAde_mRNA_","500000",  sep=""), read.csv(paste("Path/mRNAde_mRNA_", "500000", ".csv", sep=""), stringsAsFactors=FALSE)[,c(2:3)])
+assign(paste("mRNAde_mRNAde_","500000", sep=""), read.csv(paste("Path/mRNAde_mRNAde_", "500000", ".csv", sep=""), stringsAsFactors=FALSE)[,c(2:3)])
+
+# -----------------------------------------------------------------------------------------------------------------------------------------------
+# Opening up the files with the coordinates of lncRNAs and mRNAs
+
+lncRNA_coordinates <- read.csv("Path/lncRNA_microarray_results.csv")
+lncRNA_coordinates<-lncRNA_coordinates[complete.cases(lncRNA_coordinates),]
+lncRNA_coordinates<-lncRNA_coordinates[!duplicated(lncRNA_coordinates$lncRNA),]
+
+mRNA_coordinates <- read.csv("Path/mRNA_microarray_results.csv")
+mRNA_coordinates<-mRNA_coordinates[complete.cases(mRNA_coordinates),]
+mRNA_coordinates<-mRNA_coordinates[!duplicated(mRNA_coordinates$mRNA),]
+
+#-----------------------------------------------------------------------------------------------------------
+# Here use the names of mRNA/lncRNA of interest to retrieve its coordinates from the
+# lncRNA_coordinates/ mRNA_coordinates dataframe.
+# The coordinates data is than combined
+
+# Perform first for lncRNAs from mRNAde_lncRNA pairs
+
+lncRNA_chr<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNA_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),2]))
+lncRNA_start<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.numeric(lncRNA_coordinates[as.character(mRNAde_lncRNA_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),3]))
+lncRNA_end<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.numeric(lncRNA_coordinates[as.character(mRNAde_lncRNA_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),4]))
+lncRNA_strand<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNA_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),5]))
+
+lncRNA_from_mRNAdelncRNA500000<-as.data.frame(cbind(mRNAde_lncRNA_500000$lncRNA_Symbol, lncRNA_chr, lncRNA_start, lncRNA_end, lncRNA_strand), stringsAsFactors=FALSE)
+
+# Than for mRNAs from mRNAde_lncRNA pairs
+mRNA_chr<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_lncRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),3]))
+mRNA_start<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),4]))
+mRNA_end<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),5]))
+mRNA_strand<-sapply(1:nrow(mRNAde_lncRNA_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_lncRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),6]))
+
+mRNA_from_mRNAdelncRNA500000<-as.data.frame(cbind(mRNAde_lncRNA_500000$mRNA_Symbol, mRNA_chr, mRNA_start, mRNA_end, mRNA_strand), stringsAsFactors=FALSE)
+
+# Than for lncRNAs from mRNAde_lncRNAde pairs
+lncRNA_chr<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),2]))
+lncRNA_start<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.numeric(lncRNA_coordinates[as.character(mRNAde_lncRNAde_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),3]))
+lncRNA_end<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.numeric(lncRNA_coordinates[as.character(mRNAde_lncRNAde_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),4]))
+lncRNA_strand<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.character(lncRNA_coordinates[as.character(mRNAde_lncRNAde_500000$lncRNA_Symbol[i])==as.character(lncRNA_coordinates$lncRNA),5]))
+
+lncRNA_from_mRNAdelncRNAde500000<-as.data.frame(cbind(mRNAde_lncRNAde_500000$lncRNA_Symbol, lncRNA_chr, lncRNA_start, lncRNA_end, lncRNA_strand), stringsAsFactors=FALSE)
+
+# Than for mRNAs from mRNAde_lncRNAde pairs
+mRNA_chr<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_lncRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),3]))
+mRNA_start<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),4]))
+mRNA_end<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_lncRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),5]))
+mRNA_strand<-sapply(1:nrow(mRNAde_lncRNAde_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_lncRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),6]))
+
+mRNA_from_mRNAdelncRNAde500000<-as.data.frame(cbind(mRNAde_lncRNAde_500000$mRNA_Symbol, mRNA_chr, mRNA_start, mRNA_end, mRNA_strand), stringsAsFactors=FALSE)
+
+#-----------------------------------------------------------------------------------------------------------
+# Repeating the same idea for the mRNA-mRNA pairs
+# First for mRNA2s from mRNAde_mRNA pairs
+mRNA2_chr<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),3]))
+mRNA2_start<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),4]))
+mRNA2_end<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),5]))
+mRNA2_strand<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),6]))
+
+mRNA2_from_mRNAdemRNA500000<-as.data.frame(cbind(mRNAde_mRNA_500000$mRNA2_Symbol, mRNA2_chr, mRNA2_start, mRNA2_end, mRNA2_strand), stringsAsFactors=FALSE)
+
+# Than for mRNAs from mRNAde_mRNA pairs
+
+mRNA_chr<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),3]))
+mRNA_start<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),4]))
+mRNA_end<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),5]))
+mRNA_strand<-sapply(1:nrow(mRNAde_mRNA_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNA_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),6]))
+
+mRNA_from_mRNAdemRNA500000<-as.data.frame(cbind(mRNAde_mRNA_500000$mRNA_Symbol, mRNA_chr, mRNA_start, mRNA_end, mRNA_strand), stringsAsFactors=FALSE)
+
+# Than for mRNA2s from mRNAde_mRNAde pairs
+mRNA2_chr<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),3]))
+mRNA2_start<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),4]))
+mRNA2_end<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),5]))
+mRNA2_strand<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA2_Symbol[i])==as.character(mRNA_coordinates$mRNA),6]))
+
+mRNA2_from_mRNAdemRNAde500000<-as.data.frame(cbind(mRNAde_mRNAde_500000$mRNA2_Symbol, mRNA2_chr, mRNA2_start, mRNA2_end, mRNA2_strand), stringsAsFactors=FALSE)
+
+
+# Than for mRNAs from mRNAde_mRNAde pairs
+mRNA_chr<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),3]))
+mRNA_start<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),4]))
+mRNA_end<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.numeric(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),5]))
+mRNA_strand<-sapply(1:nrow(mRNAde_mRNAde_500000), function(i) as.character(mRNA_coordinates[as.character(mRNAde_mRNAde_500000$mRNA_Symbol[i])==as.character(mRNA_coordinates$mRNA),6]))
+
+mRNA_from_mRNAdemRNAde500000<-as.data.frame(cbind(mRNAde_mRNAde_500000$mRNA_Symbol, mRNA_chr, mRNA_start, mRNA_end, mRNA_strand), stringsAsFactors=FALSE)
+
+#-----------------------------------------------------------------------------------------------------------
+# Turning the lncRNA/mRNA coordinate files into GRanges
+
+lncRNA_from_mRNAdelncRNA500000_granges<-makeGRangesFromDataFrame(lncRNA_from_mRNAdelncRNA500000)
+mRNA_from_mRNAdelncRNA500000_granges<-makeGRangesFromDataFrame(mRNA_from_mRNAdelncRNA500000)
+lncRNA_from_mRNAdelncRNAde500000_granges<-makeGRangesFromDataFrame(lncRNA_from_mRNAdelncRNAde500000)
+mRNA_from_mRNAdelncRNAde500000_granges<-makeGRangesFromDataFrame(mRNA_from_mRNAdelncRNAde500000)
+
+mRNA2_from_mRNAdemRNA500000_granges<-makeGRangesFromDataFrame(mRNA2_from_mRNAdemRNA500000)
+mRNA_from_mRNAdemRNA500000_granges<-makeGRangesFromDataFrame(mRNA_from_mRNAdemRNA500000)
+mRNA2_from_mRNAdemRNAde500000_granges<-makeGRangesFromDataFrame(mRNA2_from_mRNAdemRNAde500000)
+mRNA_from_mRNAdemRNAde500000_granges<-makeGRangesFromDataFrame(mRNA_from_mRNAdemRNAde500000)
+
+# Calculating the distance between transcript pairs using the distance function of the GRanges package
+distance_mRNAdelncRNA<-distance(lncRNA_from_mRNAdelncRNA500000_granges, mRNA_from_mRNAdelncRNA500000_granges, ignore.strand=TRUE)
+distance_mRNAdelncRNAde<-distance(lncRNA_from_mRNAdelncRNAde500000_granges, mRNA_from_mRNAdelncRNAde500000_granges, ignore.strand=TRUE)
+
+distance_mRNAdemRNA<-distance(mRNA2_from_mRNAdemRNA500000_granges, mRNA_from_mRNAdemRNA500000_granges, ignore.strand=TRUE)
+distance_mRNAdemRNAde<-distance(mRNA2_from_mRNAdemRNAde500000_granges, mRNA_from_mRNAdemRNAde500000_granges, ignore.strand=TRUE)
+
+#-----------------------------------------------------------------------------------------------------------
+# Converting all of the distance values from bp into kbp by dividing the values by 1000
+# Than calculating the distribution of distances using the quantile function
+
+distance_mRNAdelncRNA<-(distance_mRNAdelncRNA/1000)
+quantile(distance_mRNAdelncRNA)
+# 0%     25%     50%     75%    100% 
+# 0.000  75.074 205.445 340.346 499.810 
+
+distance_mRNAdelncRNAde<-(distance_mRNAdelncRNAde/1000)
+quantile(distance_mRNAdelncRNAde)
+# 0%       25%       50%       75%      100% 
+# 0.00000  42.80725 142.59100 285.42300 492.96600 
+
+distance_mRNAdemRNA<-(distance_mRNAdemRNA/1000)
+quantile(distance_mRNAdemRNA)
+# 0%       25%       50%       75%      100% 
+# 0.00000  95.73775 217.86200 345.73575 499.60000 
+
+distance_mRNAdemRNAde<-(distance_mRNAdemRNAde/1000)
+quantile(distance_mRNAdemRNAde)
+# 0%      25%      50%      75%     100% 
+# 0.0560  84.0520 176.0140 305.4667 498.2910 
+
+#-----------------------------------------------------------------------------------------------------------
+# Plotting the distributions as a violin plots
+
+### Note that must load "my.vioplot" function from ViolinPlotFunction.R ###
+
+pdf("mRNAlncRNA_mRNAmRNA_distance_violinplot.pdf", height = 5, width = 7, paper="special")
+my.vioplot(distance_mRNAdelncRNA, distance_mRNAdelncRNAde, distance_mRNAdemRNA, distance_mRNAdemRNAde, col=c("blue","white", "red", "lightblue"))
+dev.off()
+
+#-----------------------------------------------------------------------------------------------------------
+# Performing the Mann-Whitney-Wilcoxon test to compare the significance of the distribution
+p1<-wilcox.test(distance_mRNAdelncRNA, distance_mRNAdelncRNAde, alternative = "two.sided")$p.value
+# p-value = 1.038e-08
+
+p2<-wilcox.test(distance_mRNAdemRNA, distance_mRNAdemRNAde, alternative = "two.sided")$p.value
+# p-value = 0.000359
+
+p3<-wilcox.test(distance_mRNAdelncRNAde, distance_mRNAdemRNAde, alternative = "two.sided")$p.value
+# p-value = 0.001261
+
+# Combining the p.values to perform Bonferoni Multiple Testing Correction
+p<-c(p1,p2,p3)
+p<-p.adjust(p, method="bonferroni")
+# 3.112512e-08   1.090945e-03   3.783562e-03
