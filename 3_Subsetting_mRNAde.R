@@ -15,7 +15,7 @@ mRNA_lncRNA_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_l
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Opening up the differentially expressed list of mRNAs
-mRNA_IL1B<- read.csv("Path/mRNA_microarray_results.csv", stringsAsFactors=FALSE)
+mRNA_IL1B<- read.csv("Path/mRNA_IL1B_differentiallyexpressed.csv", stringsAsFactors=FALSE)
 
 # -----------------------------------------------------------------------------------------------------------------------
 # Here the mRNA-lncRNA pairs will be sifted to find which pairs have a mRNA that is differentially expressed.
