@@ -1,0 +1,202 @@
+# Title: 13_Expression_BoxPlot
+# Purpose: Calculate the expression of mRNA depending on what type of neighboring transcript it has
+# Packages: None
+# Input Files: "mRNAde_lncRNA_[distance]", "mRNAde_lncRNAde_[distance]", "mRNAde_mRNA_[distance]", 
+# "mRNAde_mRNAde_[distance], "mRNAdelncRNAde_transcriptional_classification_[distance]"
+# Output Graphs: "mRNAlncRNA_mRNAmRNA_UP_boxplot_50kb_150kb_300kb.pdf", "mRNAlncRNA_mRNAmRNA_DOWN_boxplot_50kb_150kb_300kb.pdf" ,
+# "mRNA_lncRNA_divergent_nondivergent_boxplot_UP.pdf", "mRNA_lncRNA_divergent_nondivergent_boxplot_DOWN.pdf",
+# "mRNA_lncRNA_classification_UP_boxplot_150kb.pdf", "mRNA_lncRNA_classification_DOWN_boxplot_150kb.pdf"
+
+# --------------------------------------------------------------------------------------------------------------------------------
+# Loading the mRNA-lncRNA neighboring pair csv files 
+# Start by setting up a list of genomic distances for which to open up the files
+distance<-as.integer(c(seq(5000, 100000, 5000),125000,150000,175000,200000,
+                       225000, 250000,275000, 300000, 400000, 500000))
+
+# Opening up the mRNA-lncRNA neighboring pairs for the selected genomic distances and combining all these dataframes in one list
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_", distance[i], "_up_downstream.csv", sep=""), stringsAsFactors=FALSE)))
+mRNAde_lncRNA_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_lncRNA/mRNAde_lncRNA_", distance[i], "_up_downstream.csv", sep=""), stringsAsFactors=FALSE)))
+
+mRNAde_mRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_mRNAde/mRNAde_mRNAde_", distance[i], "_up_downstream.csv", sep=""), stringsAsFactors=FALSE)))
+mRNAde_mRNA_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_mRNA/mRNAde_mRNA_", distance[i], "_up_downstream.csv", sep=""), stringsAsFactors=FALSE)))
+
+# --------------------------------------------------------------------------------------------------------------------------------
+# Subsetting mRNA-lncRNA pairs based on whether the mRNA is up or down-regulated
+# New lists of dataframes are created as a copy of the original list of dataframes
+
+up_mRNAde_lncRNAde_list<-mRNAde_lncRNAde_list
+down_mRNAde_lncRNAde_list<-mRNAde_lncRNAde_list
+
+up_mRNAde_lncRNA_list<-mRNAde_lncRNA_list
+down_mRNAde_lncRNA_list<-mRNAde_lncRNA_list
+
+# Keeping only the up-regulated or down-regulated mRNA expression values
+up_mRNAde_lncRNAde_list<-sapply(seq_along(distance), function(i) up_mRNAde_lncRNAde_list[[i]][up_mRNAde_lncRNAde_list[[i]]$V3>=0,]$V3)
+down_mRNAde_lncRNAde_list<-sapply(seq_along(distance), function(i) down_mRNAde_lncRNAde_list[[i]][down_mRNAde_lncRNAde_list[[i]]$V3<=0,]$V3)
+
+up_mRNAde_lncRNA_list<-sapply(seq_along(distance), function(i) up_mRNAde_lncRNA_list[[i]][up_mRNAde_lncRNA_list[[i]]$V3>=0,]$V3)
+down_mRNAde_lncRNA_list<-sapply(seq_along(distance), function(i) down_mRNAde_lncRNA_list[[i]][down_mRNAde_lncRNA_list[[i]]$V3<=0,]$V3)
+
+# --------------------------------------------------------------------------------------------------------------------------------
+# Repeating the same thing for mRNA-mRNA lists
+# New lists of dataframes are created as a copy of the original list of dataframes
+
+up_mRNAde_mRNAde_list<-mRNAde_mRNAde_list
+down_mRNAde_mRNAde_list<-mRNAde_mRNAde_list
+
+up_mRNAde_mRNA_list<-mRNAde_mRNA_list
+down_mRNAde_mRNA_list<-mRNAde_mRNA_list
+
+# Keeping only the up-regulated or down-regulated mRNA expression values
+up_mRNAde_mRNAde_list<-sapply(seq_along(distance), function(i) up_mRNAde_mRNAde_list[[i]][up_mRNAde_mRNAde_list[[i]]$V3>=0,]$V3)
+down_mRNAde_mRNAde_list<-sapply(seq_along(distance), function(i) down_mRNAde_mRNAde_list[[i]][down_mRNAde_mRNAde_list[[i]]$V3<=0,]$V3)
+
+up_mRNAde_mRNA_list<-sapply(seq_along(distance), function(i) up_mRNAde_mRNA_list[[i]][up_mRNAde_mRNA_list[[i]]$V3>=0,]$V3)
+down_mRNAde_mRNA_list<-sapply(seq_along(distance), function(i) down_mRNAde_mRNA_list[[i]][down_mRNAde_mRNA_list[[i]]$V3<=0,]$V3)
+
+
+# --------------------------------------------------------------------------------------------------------------------------------
+# Plotting together expression values of mRNAs depending on what its neighboring transcript is
+# Using boxplots from base R
+# The genomic distances used are 50kb, 150kb, and 300kb
+
+pdf("mRNAlncRNA_mRNAmRNA_UP_boxplot_50kb_150kb_300kb.pdf", height = 5, width = 7, paper="special")
+boxplot(up_mRNAde_lncRNA_list[[10]], up_mRNAde_lncRNA_list[[22]], up_mRNAde_lncRNA_list[[28]], up_mRNAde_lncRNAde_list[[10]], up_mRNAde_lncRNAde_list[[22]], up_mRNAde_lncRNAde_list[[28]], up_mRNAde_mRNA_list[[10]], up_mRNAde_mRNA_list[[22]], up_mRNAde_mRNA_list[[28]], up_mRNAde_mRNAde_list[[10]], up_mRNAde_mRNAde_list[[22]], up_mRNAde_mRNAde_list[[28]], col=c("white", "white","white","red","red","red", "light blue", "light blue","light blue","blue", "blue", "blue"), ylab="Fold Change", notch=TRUE, outline=FALSE)
+dev.off()
+
+pdf("mRNAlncRNA_mRNAmRNA_DOWN_boxplot_50kb_150kb_300kb.pdf", height = 5, width = 7, paper="special")
+boxplot(down_mRNAde_lncRNA_list[[10]], down_mRNAde_lncRNA_list[[22]], down_mRNAde_lncRNA_list[[28]], down_mRNAde_lncRNAde_list[[10]], down_mRNAde_lncRNAde_list[[22]], down_mRNAde_lncRNAde_list[[28]], down_mRNAde_mRNA_list[[10]], down_mRNAde_mRNA_list[[22]], down_mRNAde_mRNA_list[[28]], down_mRNAde_mRNAde_list[[10]], down_mRNAde_mRNAde_list[[22]], down_mRNAde_mRNAde_list[[28]], col=c("white", "white","white","red","red","red", "light blue", "light blue","light blue","blue", "blue", "blue"), ylab="Fold Change", notch=TRUE, outline=FALSE)
+dev.off()
+
+#----------------------------------------------------------------------------------------------------------
+# Running wilcox test for mRNAdelncRNA vs mRNAdelncRNAde
+# Followed by mRNAdemRNA vs mRNAdemRNAde
+# Than mRNAdelncRNAde vs mRNAdemRNAde
+# Included are p-values for those comparisons that are found statistically significant
+
+# Start with upregulated pairs
+wilcox.test(2^(up_mRNAde_lncRNA_list[[10]]), 2^(up_mRNAde_lncRNAde_list[[10]]), paired=FALSE, alternative="two.sided")$p.value
+#0.3166896
+wilcox.test(2^(up_mRNAde_lncRNA_list[[22]]), 2^(up_mRNAde_lncRNAde_list[[22]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.03684652
+wilcox.test(2^(up_mRNAde_lncRNA_list[[28]]), 2^(up_mRNAde_lncRNAde_list[[28]]), paired=FALSE, alternative="two.sided")$p.value
+#  0.9411786
+
+wilcox.test(2^(up_mRNAde_mRNA_list[[10]]), 2^(up_mRNAde_mRNAde_list[[10]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.0001035133
+wilcox.test(2^(up_mRNAde_mRNA_list[[22]]), 2^(up_mRNAde_mRNAde_list[[22]]), paired=FALSE, alternative="two.sided")$p.value
+# 1.087721e-08
+wilcox.test(2^(up_mRNAde_mRNA_list[[28]]), 2^(up_mRNAde_mRNAde_list[[28]]), paired=FALSE, alternative="two.sided")$p.value
+# 7.21283e-07
+
+wilcox.test(2^(up_mRNAde_lncRNAde_list[[10]]), 2^(up_mRNAde_mRNAde_list[[10]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.0488028
+wilcox.test(2^(up_mRNAde_lncRNAde_list[[22]]), 2^(up_mRNAde_mRNAde_list[[22]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.01152126
+wilcox.test(2^(up_mRNAde_lncRNAde_list[[28]]), 2^(up_mRNAde_mRNAde_list[[28]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.0001469673
+
+
+# Than downregulated pairs
+wilcox.test(2^(down_mRNAde_lncRNA_list[[10]]), 2^(down_mRNAde_lncRNAde_list[[10]]), paired=FALSE, alternative="two.sided")$p.value
+wilcox.test(2^(down_mRNAde_lncRNA_list[[22]]), 2^(down_mRNAde_lncRNAde_list[[22]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.001439286
+wilcox.test(2^(down_mRNAde_lncRNA_list[[28]]), 2^(down_mRNAde_lncRNAde_list[[28]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.001299568
+
+wilcox.test(2^(down_mRNAde_mRNA_list[[10]]), 2^(down_mRNAde_mRNAde_list[[10]]), paired=FALSE, alternative="two.sided")$p.value
+wilcox.test(2^(down_mRNAde_mRNA_list[[22]]), 2^(down_mRNAde_mRNAde_list[[22]]), paired=FALSE, alternative="two.sided")$p.value
+wilcox.test(2^(down_mRNAde_mRNA_list[[28]]), 2^(down_mRNAde_mRNAde_list[[28]]), paired=FALSE, alternative="two.sided")$p.value
+
+wilcox.test(2^(down_mRNAde_lncRNAde_list[[10]]), 2^(down_mRNAde_mRNAde_list[[10]]), paired=FALSE, alternative="two.sided")$p.value
+wilcox.test(2^(down_mRNAde_lncRNAde_list[[22]]), 2^(down_mRNAde_mRNAde_list[[22]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.01581043
+wilcox.test(2^(down_mRNAde_lncRNAde_list[[28]]), 2^(down_mRNAde_mRNAde_list[[28]]), paired=FALSE, alternative="two.sided")$p.value
+# 0.004798952
+
+#----------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------------------------
+# Here the mRNA expression was looked at depending on the transcriptional orientation of mRNAde-lncRNAde pair
+# Start by opening up the trancriptional orientation classification information
+mRNAde_lncRNAde_classification_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "classification", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_transcriptional_classification/mRNAde_lncRNAde_transcriptional_classification_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)[,-1]))
+
+# Joining the transcriptional orientation information with the expression data
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]],mRNAde_lncRNAde_classification_list[[i]]$V7, stringsAsFactors=FALSE)))
+
+# New lists of dataframes are created as a copy of the original list of dataframes
+up_mRNAde_lncRNAde_list<-mRNAde_lncRNAde_list
+down_mRNAde_lncRNAde_list<-mRNAde_lncRNAde_list
+
+# Keeping only the up-regulated or down-regulated mRNA expression values. In the dataframes
+# Keep only the fold change and transcriptional orientation "class" columns
+up_mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) up_mRNAde_lncRNAde_list[[i]][up_mRNAde_lncRNAde_list[[i]]$V3>=0,c(3,5)])
+up_mRNAde_lncRNAde_list<-lapply(up_mRNAde_lncRNAde_list, setNames, nm= c("fold change", "class"))
+
+down_mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) down_mRNAde_lncRNAde_list[[i]][down_mRNAde_lncRNAde_list[[i]]$V3>=0,c(3,5)])
+down_mRNAde_lncRNAde_list<-lapply(down_mRNAde_lncRNAde_list, setNames, nm= c("fold change", "class"))
+
+#----------------------------------------------------------------------------------------------------------
+# Plotting divergent vs non-divergent boxplots for the 50, 150, and 300kb distances
+# Start with up-regulated mRNAs
+
+pdf("mRNA_lncRNA_divergent_nondivergent_boxplot_UP.pdf", height = 5, width = 6, paper="special")
+UP<-boxplot(up_mRNAde_lncRNAde_list[[10]][up_mRNAde_lncRNAde_list[[10]]$class=="divergent",1],
+            up_mRNAde_lncRNAde_list[[10]][up_mRNAde_lncRNAde_list[[10]]$class!="divergent",1],
+            up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="divergent",1],
+            up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class!="divergent",1],
+            up_mRNAde_lncRNAde_list[[28]][up_mRNAde_lncRNAde_list[[28]]$class=="divergent",1],
+            up_mRNAde_lncRNAde_list[[28]][up_mRNAde_lncRNAde_list[[28]]$class!="divergent",1],
+            col=c("darkorchid4", "red", "darkorchid4", "red","darkorchid4", "red"),ylab="Fold Change", outline=FALSE, notch=TRUE, 
+            at=c(1,2,3.5,4.5,6,7))
+dev.off()
+
+# Performing wilcox test to determine whether the difference between divergent and non-divergent
+# is significant
+
+wilcox.test(2^(up_mRNAde_lncRNAde_list[[10]][up_mRNAde_lncRNAde_list[[10]]$class=="divergent",1]), 2^(up_mRNAde_lncRNAde_list[[10]][up_mRNAde_lncRNAde_list[[10]]$class!="divergent",1]), paired=FALSE, alternative="two.sided")$p.value
+# 0.2237939
+
+wilcox.test(2^(up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="divergent",1]), 2^(up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class!="divergent",1]), paired=FALSE, alternative="two.sided")$p.value
+# 0.06372794
+
+wilcox.test(2^(up_mRNAde_lncRNAde_list[[28]][up_mRNAde_lncRNAde_list[[28]]$class=="divergent",1]), 2^(up_mRNAde_lncRNAde_list[[28]][up_mRNAde_lncRNAde_list[[28]]$class!="divergent",1]), paired=FALSE, alternative="two.sided")$p.value
+# 0.7323569
+
+# Now the same thing but for the downregulated mRNAs
+pdf("mRNA_lncRNA_divergent_nondivergent_boxplot_DOWN.pdf", height = 5, width = 6, paper="special")
+DOWN<-boxplot(down_mRNAde_lncRNAde_list[[10]][down_mRNAde_lncRNAde_list[[10]]$class=="divergent",1],
+              down_mRNAde_lncRNAde_list[[10]][down_mRNAde_lncRNAde_list[[10]]$class!="divergent",1],
+              down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class=="divergent",1],
+              down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class!="divergent",1],
+              down_mRNAde_lncRNAde_list[[28]][down_mRNAde_lncRNAde_list[[28]]$class=="divergent",1],
+              down_mRNAde_lncRNAde_list[[28]][down_mRNAde_lncRNAde_list[[28]]$class!="divergent",1],
+            col=c("darkorchid4", "red", "darkorchid4", "red","darkorchid4", "red"),ylab="Fold Change", outline=FALSE, notch=TRUE, 
+            at=c(1,2,3.5,4.5,6,7))
+dev.off()
+#----------------------------------------------------------------------------------------------------------
+# Plotting mRNA expression values in boxplot for 150kb distance for all the different
+# transcriptional orientation types.
+# First for the up-regulated mRNAs
+
+pdf("mRNA_lncRNA_classification_UP_boxplot_150kb.pdf", height = 5, width = 7, paper="special")
+UP<-boxplot(up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="divergent",1],
+            up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="antisense",1],
+            up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="forward codirectional",1],
+            up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="reverse codirectional",1],            
+            up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="convergent",1],
+            up_mRNAde_lncRNAde_list[[22]][up_mRNAde_lncRNAde_list[[22]]$class=="intersecting",1],
+            col=c("darkorchid4", "darkorange2", "deeppink","dodgerblue3","dark green","grey10"),ylab="Fold Change", outline=FALSE)
+dev.off()
+
+
+# Than for the down-regulated mRNAs
+pdf("mRNA_lncRNA_classification_DOWN_boxplot_150kb.pdf", height = 5, width = 7, paper="special")
+DOWN<-boxplot(down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class=="divergent",1],
+              down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class=="antisense",1],
+              down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class=="forward codirectional",1],
+              down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class=="reverse codirectional",1],            
+              down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class=="convergent",1],
+              down_mRNAde_lncRNAde_list[[22]][down_mRNAde_lncRNAde_list[[22]]$class=="intersecting",1],
+            col=c("darkorchid4", "darkorange2", "deeppink","dodgerblue3","dark green","grey10"),ylab="Fold Change", outline=FALSE)
+dev.off()
