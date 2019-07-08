@@ -154,7 +154,7 @@ lapply(seq_along(random_mRNAde_mRNAde_list),
 mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(mRNAde_lncRNAde_list[[i]]))
 
 # Opening up the transcriptional orientation classification information 
-mRNAde_lncRNAde_classification_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "classification", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_classification/mRNAde_lncRNAde_classification_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)[,-1]))
+mRNAde_lncRNAde_classification_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "classification", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_TranscriptionalOrientation/mRNAde_lncRNAde_TranscriptionalOrientation_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)[,-1]))
 
 # Joining the transcriptional orientation information with the coordinates data
 mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]],mRNAde_lncRNAde_classification_list[[i]]$V7, stringsAsFactors=FALSE)))
