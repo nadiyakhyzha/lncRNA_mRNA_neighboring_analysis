@@ -7,7 +7,7 @@ require(GenomicRanges)
 
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 # Opening up all lncRNAs in the microarray file  
-lncRNA <- read.csv("Path/lncRNA_microarray_results.csv", stringsAsFactors=FALSE)[,1:11]
+lncRNA <- read.csv("Path/Table_S1_lncRNA_microarray_results.csv", stringsAsFactors=FALSE)[,1:11]
 
 # Getting rid off incomplete rows
 lncRNA<- lncRNA[complete.cases(lncRNA),]
@@ -20,7 +20,7 @@ lncRNA_GRanges<-makeGRangesFromDataFrame(lncRNA, keep.extra.columns=TRUE)
 
 
 # Opening up all mRNAs in the microarray file
-mRNA<- read.csv("Path/mRNA_microarray_results.csv", stringsAsFactors=FALSE)[,1:12]
+mRNA<- read.csv("Path/Table_S2_mRNA_microarray_results.csv", stringsAsFactors=FALSE)[,1:12]
 
 # Getting rid off incomplete rows
 mRNA<- mRNA[complete.cases(mRNA),]
