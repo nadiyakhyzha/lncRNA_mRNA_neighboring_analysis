@@ -21,11 +21,11 @@ mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mR
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 # Now opening up the files with the coordinates of lncRNAs and mRNAs
 
-lncRNA_coordinates <- read.csv("Path/lncRNA_microarray_results.csv")
+lncRNA_coordinates <- read.csv("Path/lncRNA_IL1B_differentiallyexpressed.csv")
 lncRNA_coordinates<-lncRNA_coordinates[complete.cases(lncRNA_coordinates),]
 lncRNA_coordinates<-lncRNA_coordinates[!duplicated(lncRNA_coordinates$lncRNA),]
 
-mRNA_coordinates <- read.csv("Path/mRNA_microarray_results.csv")
+mRNA_coordinates <- read.csv("Path/mRNA_IL1B_differentiallyexpressed.csv")
 mRNA_coordinates<-mRNA_coordinates[complete.cases(mRNA_coordinates),]
 mRNA_coordinates<-mRNA_coordinates[!duplicated(mRNA_coordinates$mRNA),]
 
@@ -155,7 +155,7 @@ mRNAde_mRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA
 # -----------------------------------------------------------------------------------------------------------------------------------------------
 # Now opening up the file with the coordinates of mRNAs
 
-mRNA_coordinates <- read.csv("Path/mRNA_microarray_results.csv")
+mRNA_coordinates <- read.csv("Path/mRNA_IL1B_differentiallyexpressed.csv")
 mRNA_coordinates<-mRNA_coordinates[complete.cases(mRNA_coordinates),]
 mRNA_coordinates<-mRNA_coordinates[!duplicated(mRNA_coordinates$mRNA),]
 
