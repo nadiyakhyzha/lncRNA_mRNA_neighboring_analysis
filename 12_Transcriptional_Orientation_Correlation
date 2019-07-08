@@ -1,0 +1,140 @@
+# Title: 12_Transcriptional_Orientation_Correlation
+# Purpose: To calculate the correlation in expression of mRNAde-lncRNAde 
+# depending on their transcriptional orientation
+# Packages: None
+# Input Files: "mRNAde_lncRNAde_[distance]", "mRNAdelncRNAde_TranscriptionalOrientation_[distance]",
+# Output Files: "SpearmanCorrelation_TranscriptionalOrientation", "SpearmanCorrelation_Divergent_vs_Nondivergent"
+# Output Graphs: "spearman_correlation_mRNAlncRNA_transcriptionalorientation", "spearman_correlation_mRNAlncRNA_divergent"
+#-------------------------------------------------------------------------------------------------
+
+# Loading the mRNA-lncRNA neighboring pair csv files 
+# Start by setting up a list of genomic distances for which to open up the files
+distance<-as.integer(c(seq(5000, 100000, 5000),125000,150000,175000,200000,
+                       225000, 250000,275000, 300000, 400000, 500000))
+
+# Opening up the mRNA-lncRNA neighboring pairs for the selected genomic distances and combining all these dataframes in one list
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "_up_downstream", sep=""), read.csv(paste("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_", distance[i], "_up_downstream.csv", sep=""), stringsAsFactors=FALSE)))
+
+mRNAde_lncRNAde_classification_list<-lapply(seq_along(distance), function(i)   assign(paste("mRNA_lncRNA_",distance[i], "classification", sep=""), read.csv(paste("Path/mRNAde_lncRNAde_TranscriptionalOrientation/mRNAde_lncRNAde_TranscriptionalOrientation_", distance[i], ".csv", sep=""), stringsAsFactors=FALSE)[,-1]))
+
+# Joining the transcriptional orientation information with the expression data
+mRNAde_lncRNAde_list<-lapply(seq_along(distance), function(i) as.data.frame(cbind(mRNAde_lncRNAde_list[[i]],mRNAde_lncRNAde_classification_list[[i]]$V6, mRNAde_lncRNAde_classification_list[[i]]$V7, stringsAsFactors=FALSE)))
+
+# Setting the column names
+mRNAde_lncRNAde_list<-lapply(mRNAde_lncRNAde_list, setNames, nm= c("mRNA", "lncRNA", "V3", "V4", "class2" ,"class"))
+
+#-------------------------------------------------------------------------------------------------
+# Calculating the correlation in expression
+
+n_mRNAdelncRNAde<-sapply(seq_along(distance), function(i) nrow(mRNAde_lncRNAde_list[[i]]))
+rho_mRNAdelncRNAde<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]]$V3), 2^(mRNAde_lncRNAde_list[[i]]$V4), method="spearman")$estimate)
+pvalue_rho_mRNAdelncRNAde<-sapply(seq_along(distance), function(i) cor.test(2^(mRNAde_lncRNAde_list[[i]]$V3), 2^(mRNAde_lncRNAde_list[[i]]$V4), method="spearman")$p.value)
+
+n_forward_codirectional<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$class=="forward codirectional"))
+rho_forward_codirectional<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="forward codirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="forward codirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="forward codirectional",4]), method="spearman")$estimate,NA))
+pvalue_rho_forward_codirectional<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="forward codirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="forward codirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="forward codirectional",4]), method="spearman")$p.value,NA))
+
+n_reverse_codirectional<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$class=="reverse codirectional"))
+rho_reverse_codirectional<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="reverse codirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="reverse codirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="reverse codirectional",4]), method="spearman")$estimate,NA))
+pvalue_rho_reverse_codirectional<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="reverse codirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="reverse codirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="reverse codirectional",4]), method="spearman")$p.value,NA))
+
+n_convergent<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$class=="inward bidirectional"))
+rho_convergent<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="inward bidirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="inward bidirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="inward bidirectional",4]), method="spearman")$estimate, NA))
+pvalue_rho_convergent<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="inward bidirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="inward bidirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="inward bidirectional",4]), method="spearman")$p.value, NA))
+
+n_divergent<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional"))
+rho_divergent<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional",4]), method="spearman")$estimate, NA))
+pvalue_rho_divergent<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="outward bidirectional",4]), method="spearman")$p.value, NA))
+
+n_nondivergent<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional"))
+rho_nondivergent<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional",4]), method="spearman")$estimate, NA))
+pvalue_rho_nondivergent<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class!="outward bidirectional",4]), method="spearman")$p.value, NA))
+
+n_antisense<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$class=="antisense"))
+rho_antisense<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="antisense")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="antisense",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="antisense",4]), method="spearman")$estimate, NA))
+pvalue_rho_antisense<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class=="antisense")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="antisense",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class=="antisense",4]), method="spearman")$p.value, NA))
+
+n_intersecting<-sapply(seq_along(distance), function(i) sum(mRNAde_lncRNAde_list[[i]]$class2=="intersecting"))
+rho_intersecting<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class2=="intersecting")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class2=="intersecting",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class2=="intersecting",4]), method="spearman")$estimate, NA))
+pvalue_rho_intersecting<-sapply(seq_along(distance), function(i) ifelse(sum(mRNAde_lncRNAde_list[[i]]$class2=="intersecting")>=2,cor.test(2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class2=="intersecting",3]), 2^(mRNAde_lncRNAde_list[[i]][mRNAde_lncRNAde_list[[i]]$class2=="intersecting",4]), method="spearman")$p.value, NA))
+
+
+
+correlation_spearman_lncRNA<-data.frame(distance, n_mRNAdelncRNAde, rho_mRNAdelncRNAde, pvalue_rho_mRNAdelncRNAde,
+                                        n_forward_codirectional, rho_forward_codirectional, pvalue_rho_forward_codirectional,
+                                        n_reverse_codirectional, rho_reverse_codirectional, pvalue_rho_reverse_codirectional,
+                                        n_convergent, rho_convergent, pvalue_rho_convergent, n_divergent, rho_divergent, pvalue_rho_divergent,
+                                        n_antisense, rho_antisense, pvalue_rho_antisense, n_intersecting, rho_intersecting, pvalue_rho_intersecting)
+# Save this dataframe
+
+correlation_spearman_lncRNA_divergent<-data.frame(distance, n_divergent, rho_divergent, pvalue_rho_divergent,
+                                                  n_nondivergent, rho_nondivergent, pvalue_rho_nondivergent)
+
+#-------------------------------------------------------------------------------------------------
+# Now plotting the different spearman correlations for their respective genomic distances
+# as a line graph 
+
+# Start with plotting spearman rho for all of the different transcriptional orientations
+# Removing some of the shorter distance to make the graph less cluttered
+correlation_spearman_lncRNA<-correlation_spearman_lncRNA[c(5,10,15,20:30),]
+distances<-correlation_spearman_lncRNA$distance
+
+pdf("spearman_correlation_mRNAlncRNA_transcriptionalorientation.pdf", height = 4, width = 6, paper="special")
+plot(correlation_spearman_lncRNA[,6]~distances, type = "o", lwd=3, pch=19, col = "deeppink", ylim=c(-0.2,1.3), xlab= "distance", ylab= "Spearman Correlation Coefficient (rho)")
+lines(correlation_spearman_lncRNA[,18]~distances, type = "o", lwd=3, pch=19, col = "darkorange2")
+lines(correlation_spearman_lncRNA[,9]~distances, type = "o", lwd=3, pch=19, col = "dodgerblue3")
+lines(correlation_spearman_lncRNA[,12]~distances, type = "o", lwd=3, pch=19, col = "dark green")
+lines(correlation_spearman_lncRNA[,15]~distances, type = "o",lwd=3,  pch=19, col = "darkorchid4")
+lines(correlation_spearman_lncRNA[,21]~distances, type = "o", lwd=3, pch=19, col = "grey10")
+legend(250000, 1.4, legend=c("antisense","divergent", "intersecting"),
+       col=c("darkorange2", "darkorchid4","grey10"), pch=c(19,19,19), cex=0.8, box.lty=0)
+legend(350000, 1.4, legend=c("reverse codirectional", "forward codirectional", "convergent"),
+       col=c("dodgerblue3", "deeppink", "dark green"), pch=c(19,19,19), cex=0.8, box.lty=0)
+dev.off()
+
+# Than plot spearman rho for either divergent or nondivergent transcript pairs
+
+correlation_spearman_lncRNA_divergent_short<-correlation_spearman_lncRNA_divergent[c(5,10,15,20:30),]
+distances<-correlation_spearman_lncRNA_divergent_short$distance
+# Removing some of the shorter distance to make the graph less cluttered
+
+pdf("spearman_correlation_mRNAlncRNA_divergent.pdf", height = 4, width = 6, paper="special")
+plot(correlation_spearman_lncRNA_divergent_short[,3]~distances, type = "o", lwd=3, pch=19, col = "darkorchid4", ylim=c(-0,1.0), xlab= "distance", ylab= "Spearman Correlation Coefficient (rho)")
+lines(correlation_spearman_lncRNA_divergent_short[,6]~distances, type = "o", lwd=3, pch=19, col = "red")
+legend(350000, 1.0, legend=c("divergent", "nondivergent"),
+       col=c("darkorchid4", "red"), pch=c(19,19), cex=0.8, box.lty=0)
+dev.off()
+
+#-------------------------------------------------------------------------------------------------
+# Calculating whether the correlation for divergent mRNAde-lncRNAde pairs is statistically significantly
+# different from that of non-divergent pairs. 
+
+#This function will convert spearman rho values into z-scores and than performed t-test
+
+cor.diff.test = function(n1, r1, n2, r2) {
+  # n1 is the number of pairs for the first set
+  # r1 is the rho coefficient for the first set
+  # n2 is the number of pairs for the second set
+  # r2 is the rho coefficient for the second set
+  
+  r1 = r1
+  r2 = r2
+  n1 = n1
+  n2 = n2
+  fisher = ((0.5*log((1+r1)/(1-r1)))-(0.5*log((1+r2)/(1-r2))))/((1/(n1-3))+(1/(n2-3)))^0.5
+  
+  p.value = (2*(1-pnorm(abs(fisher))))
+  
+  return(as.numeric(p.value))
+}
+
+# Now calculating
+pvalues<- sapply(seq_along(distances), function(i) cor.diff.test(correlation_spearman_lncRNA_divergent_short[i,2],correlation_spearman_lncRNA_divergent_short[i,3],
+                                                                 correlation_spearman_lncRNA_divergent_short[i,5], correlation_spearman_lncRNA_divergent_short[i,6]))
+
+# Adjusting the p-values for multiple testing
+adj_pvalues<-p.adjust(pvalues, method="bonferroni")
+
+# Combining together
+correlation_spearman_lncRNA_divergent<-cbind(correlation_spearman_lncRNA_divergent_short, pvalues, adj_pvalues)
+# Save this dataframe
