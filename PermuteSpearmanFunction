@@ -1,0 +1,70 @@
+# PermuteSpearmanFunction
+# The purpose of this script is to perform permutation tests on mRNAde-lncRNAde pairs
+# where the mRNAde and lncRNAde specified distance apart will be randomly sampled without
+# replacement. The spearman rho will than be calculated for each randomization.
+# The distribution of calculated spearman rho values is than plotted as a histogram.
+# _____________________________________________________________________________________
+
+# Opening up the mRNAde-lncRNAde files
+
+list_50kb<- read.csv("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_50000.csv", stringsAsFactors=FALSE)[,-1]
+list_150kb<- read.csv("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_150000.csv", stringsAsFactors=FALSE)[,-1]
+list_300kb<- read.csv("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_300000.csv", stringsAsFactors=FALSE)[,-1]
+
+# Calculating the number of times that permutation will be performed
+
+nsim_50kb=nrow(list_50kb)*nrow(list_50kb)
+nsim_150kb=nrow(list_150kb)*nrow(list_150kb)
+nsim_300kb=nrow(list_300kb)*nrow(list_300kb)
+
+# _____________________________________________________________________________________
+
+# The permutation function
+
+PermuteSpearman<-function(list, n){
+
+  list<-list
+  n<-n
+  spearman<-vector(length=n)
+
+for (i in 1:n){
+  shuffled_mRNA<-vector(length=nrow(list))
+  shuffled_lncRNA<-vector(length=nrow(list))
+  
+  shuffled<-data.frame(shuffled_mRNA, shuffled_lncRNA)
+  
+  
+  shuffled$shuffled_mRNA<-sample(list[,3], size=nrow(list), replace=FALSE)
+  shuffled$shuffled_lncRNA<-sample(list[,4], size=nrow(list), replace=FALSE)
+  
+  spearman[i]<-cor.test(shuffled$shuffled_mRNA, shuffled$shuffled_lncRNA, method="spearman")$estimate
+}
+  return(spearman)
+}
+
+# _____________________________________________________________________________________
+
+# Performing the permutation
+
+spearman_50kb<- PermuteSpearman(list_50kb, nsim_50kb)
+spearman_150kb<- PermuteSpearman(list_150kb, nsim_150kb)
+spearman_300kb<- PermuteSpearman(list_300kb, nsim_300kb)
+
+# _____________________________________________________________________________________
+
+# Plotting the distribution of permuted spearman rho values in a histogram
+
+pdf("spearman_permutation_50kb.pdf", height = 5, width = 5, paper="special")
+hist(spearman_50kb, xlim = c(-1, 1), col = "black", breaks = 100)
+abline(v = 0.748618, col = "red", lwd = 2)
+dev.off()
+
+pdf("spearman_permutation_150kb.pdf", height = 5, width = 5, paper="special")
+hist(spearman_150kb, xlim = c(-1, 1), col = "black", breaks = 100)
+abline(v = 0.48823, col = "red", lwd = 2)
+dev.off()
+
+pdf("spearman_permutation_300kb.pdf", height = 5, width = 5, paper="special")
+hist(spearman_300kb, xlim = c(-1, 1), col = "black", breaks = 100)
+abline(v = 0.406638, col = "red", lwd = 2)
+dev.off()
