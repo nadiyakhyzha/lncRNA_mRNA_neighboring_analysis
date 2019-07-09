@@ -1,0 +1,78 @@
+# Title: 14_PickingTopmRNAlncRNApairs
+# Purpose: To select top mRNA-lncRNAs for follow-up based on the criteria of being divergently transcribed and being on the same TAD
+# Packages: "gplots", "ggplot2"
+require(gplots)
+require(ggplot2)
+# Input Files: "HUVEC_TAD", "mRNAde_lncRNAde_500000", "mRNAde_lncRNAde_transcriptional_classification_500000", "mRNA_IL1B_differentiallyexpressed",
+# "lncRNA_IL1B_differentiallyexpressed"
+# Output Files: "Top_mRNAdelncRNAde_pairs"
+# Output Graphs: "Top_mRNAdelncRNAde_pairs", "Scatterplot_spearman_divergentsameTAD_mRNAdelncRNAde",
+#--------------------------------------------------------------------------------------------------------
+
+# Opening up the TAD classification file, the transcriptional classification file, and file with all mRNAde-lncRNAde pairs
+TAD<- read.csv("Path/mRNAde_lncRNAde_TAD/lncRNAde_list_500000_TAD.csv", header=TRUE, stringsAsFactors=FALSE)[,-1]
+class<- read.csv("Path/mRNAde_lncRNAde_transcriptional_classification/mRNAde_lncRNAde_transcriptional_classification_500000.csv", stringsAsFactors=FALSE)[,-1]
+mRNAdelncRNAde<- read.csv("Path/mRNAde_lncRNAde/mRNAde_lncRNAde_500000.csv", stringsAsFactors=FALSE)
+
+# Adding in info about TADs and transcriptional classification into the list file
+mRNAdelncRNAde[,5]<-TAD[,7]
+mRNAdelncRNAde[,6]<-class[,7]
+
+#--------------------------------------------------------------------------------------------------------
+# Sorting out mRNAde-lncRNAde pairs that are on the same TAD and are divergently transcribed
+# Initially there were 518 mRNAde-lncRNAde pairs
+# Identify those that are found on the same TAD
+mRNAdelncRNAde_sameTAD<-mRNAdelncRNAde[(mRNAdelncRNAde$V5=="same TAD"),]
+# After filtering for the same TAD there are now 118 mRNAde-lncRNAde pairs
+
+# Now identify a subset of mRNAde-lncRNAde pairs on the same TAD that are also divergent in their transcription
+mRNAdelncRNAde_sameTAD_divergent<-mRNAdelncRNAde_sameTAD[(mRNAdelncRNAde_sameTAD$V6=="outward bidirectional"),]
+# Left with 35 mRNAde-lncRNAde pairs
+
+#--------------------------------------------------------------------------------------------------------
+# Next retrieving mRNA gene names to add to the list instead of accession numbers
+# Opening up the list with mRNA names
+mRNA<- read.csv("C:/Users/Nadiya/Desktop/Bioinformatics/ArrayData/lncRNA_mRNA_Arrays_Neighboring_Analysis/IL1B_lncRNA_mRNA_4hr_Analysis/mRNA_IL1B_de4hr.csv", stringsAsFactors = FALSE)
+
+# Retrieving the corresponding mRNA name
+mRNA_name<- sapply(1:nrow(mRNAdelncRNAde_sameTAD_divergent), function(i) mRNA[mRNAdelncRNAde_sameTAD_divergent[i,1]==mRNA$mRNA,3])
+
+# Merging mRNA name with the rest of dataframe
+mRNAdelncRNAde_sameTAD_divergent<-cbind(mRNAdelncRNAde_sameTAD_divergent, mRNA_name)
+# Save this list
+#--------------------------------------------------------------------------------------------------------
+# Making a heatmap to show the expression levels of divergent and same TAD mRNAde-lncRNAde pairs
+
+# Setting the mRNA gene names as the rownames for the heatmap
+rownames<-mRNAdelncRNAde_sameTAD_divergent[,7]
+
+# Keeping just the expression values which are already log2 transformed
+list_TAD_divergent<-mRNAdelncRNAde_sameTAD_divergent[,c(3,4)]
+
+# Making a copy for later use
+list<-list_TAD_divergent
+
+# Converting dataframe into matrix to allow for plotting
+list_TAD_divergent<-as.matrix(list_TAD_divergent)
+
+# Plotting heatmap
+pdf("Top_mRNAdelncRNAde_pairs.pdf", height = 9, width = 6,  paper="special")
+heatmap.2(list_TAD_divergent, col=bluered(200), colsep=3, sepcolor="white", trace="none",
+          density.info="none", Colv=FALSE, Rowv=TRUE, dendrogram="row", cexCol=0.8,
+          cexRow=0.7, keysize=1.0, offsetRow=0.01, offsetCol=0.01, symbreaks=TRUE, key.xlab="log2 value", labRow=rownames, labCol=c("mRNA", "lncRNA"))
+dev.off()
+
+#--------------------------------------------------------------------------------------------------------------------
+# From the heatmap, the correlation in expression of mRNAde-lncRNAde pairs is highly evident. Another way of portraying it.
+
+# Plotting a scatterplot with mRNA log2 expression on x-axis and lncRNA log2 expression on y-axis
+pdf("Scatterplot_spearman_divergentsameTAD_mRNAdelncRNAde.pdf", height = 5, width = 5, paper="special")
+sp<- ggplot(list, aes(x=V3, y=V4)) + 
+  geom_point(color="red", size=3.0)
+sp + geom_hline(yintercept=0, size=1) + geom_vline(xintercept=0, size=1)
+dev.off()
+
+# Calculating the spearman correlation coefficient for the mRNA-lncRNA pair
+cor.test(2^(list$V3), 2^(list$V4), method="spearman")
+# rho= 0.8955042
+# p-value= 1.491e-09
