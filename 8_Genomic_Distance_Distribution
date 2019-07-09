@@ -2,6 +2,7 @@
 # Purpose: To determine the distribution of distances between mRNA's and their neighboring
 # transcripts. The Kernel Density will be calculated. 
 # Packages: "GenomicRanges", "vioplot", "sm", "ggplot2"
+# Function: "my.vioplot" from https://github.com/TomKellyGenetics/R-violin-plot/blob/master/my.vioplot.R
 
 require(GenomicRanges)
 require(vioplot)
@@ -154,7 +155,7 @@ quantile(distance_mRNAdemRNAde)
 #-----------------------------------------------------------------------------------------------------------
 # Plotting the distributions as a violin plots
 
-### Note that must load "my.vioplot" function from ViolinPlotFunction.R ###
+### Note that must load "my.vioplot" function from https://github.com/TomKellyGenetics/R-violin-plot/blob/master/my.vioplot.R ###
 
 pdf("mRNAlncRNA_mRNAmRNA_distance_violinplot.pdf", height = 5, width = 7, paper="special")
 my.vioplot(distance_mRNAdelncRNA, distance_mRNAdelncRNAde, distance_mRNAdemRNA, distance_mRNAdemRNAde, col=c("blue","white", "red", "lightblue"))
